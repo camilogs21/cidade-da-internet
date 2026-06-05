@@ -571,7 +571,7 @@ function clearDropZone(key){
 function submitInput(key){
   const val = document.getElementById('mi-'+key).value.trim();
   const m   = protos[key].mission;
-  if(m.validate(val)) completeMission(key);
+  if(m.validate(val)) completeMission(key, val);
   else showFeedback(key, false, '❌ Resposta inválida. Verifique e tente novamente!');
 }
 function submitMultiple(key, idx){
@@ -580,7 +580,7 @@ function submitMultiple(key, idx){
   btns.forEach(b => b.disabled = true);
   if(idx === m.correct){
     btns[idx].classList.add('correct');
-    completeMission(key);
+    completeMission(key, m.options[idx]);
   } else {
     btns[idx].classList.add('wrong'); btns[m.correct].classList.add('correct');
     showFeedback(key, false, '❌ Não foi dessa vez! A resposta correta está em verde. Tente de novo!');
@@ -594,17 +594,19 @@ function submitPackets(key){
   const correct   = m.answer.toUpperCase();
   const alts      = (m.altAnswers||[]).map(a=>a.toUpperCase());
   if(assembled===correct || alts.includes(assembled) || joined===correct.replace(/ /g,'') || alts.map(a=>a.replace(/ /g,'')).includes(joined))
-    completeMission(key);
+    completeMission(key, dropZoneItems.join(' '));
   else
     showFeedback(key, false, '❌ Quase lá! Verifique a ordem. A mensagem começa com OLA... Clique em Limpar e tente de novo!');
 }
 
 // ── COMPLETE ──────────────────────────────────────────────────────
-function completeMission(key){
+function completeMission(key, resposta){
   if(!state.progress)   state.progress   = {};
   if(!state.timestamps) state.timestamps = {};
+  if(!state.respostas)  state.respostas  = {};
   state.progress[key]   = true;
   state.timestamps[key] = new Date().toISOString();
+  state.respostas[key]  = resposta || '';
   saveState();
   updateUI();
   const m  = protos[key].mission;
@@ -620,7 +622,8 @@ function sendToSheets(isFinal){
   const prog = ORDER.map(k => ({
     protocolo: k,
     concluido: !!(state.progress && state.progress[k]),
-    horario:   (state.timestamps && state.timestamps[k]) || ''
+    horario:   (state.timestamps && state.timestamps[k]) || '',
+    resposta:  (state.respostas  && state.respostas[k])  || ''
   }));
   const params = new URLSearchParams({
     sessionId:  getSessionId(),
