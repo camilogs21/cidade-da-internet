@@ -318,24 +318,20 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 </div>
 
 <script>
-// ════════════════════════════════════════════
-// CONFIGURAÇÃO — cole aqui a URL do seu Apps Script
-// ════════════════════════════════════════════
+// ════════════════════════════════════
+// CONFIGURAÇÃO
+// ════════════════════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBmueJpYeH7nJU-C10mOj97bwWTgPXWzYWokvFkXVWB5nZNHEyXBhFO8mkU2ZoBK9XmQ/exec';
-// ════════════════════════════════════════════
-
 const STORAGE_KEY = 'cidadeInternet_v2';
 const ORDER = ['wifi','dhcp','dns','tcp','http','ftp','smtp','ssh'];
 const TOTAL = 8;
 
-let state = loadState();
-let dragSrc = null;
-let dropZoneItems = [];
-
+// ── FUNÇÕES UTILITÁRIAS (declaradas primeiro) ─────────────────────
 function loadState(){
   try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
   catch(e){ return {}; }
 }
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 function getSessionId(){
   if(!state.sessionId){
     state.sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2,6);
@@ -343,81 +339,84 @@ function getSessionId(){
   }
   return state.sessionId;
 }
-function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
-// ── ONBOARDING ──────────────────────────────
+// ── ESTADO GLOBAL (após funções declaradas) ───────────────────────
+let state = loadState();
+let dragSrc = null;
+let dropZoneItems = [];
+
+// ── ONBOARDING ────────────────────────────────────────────────────
 function startGame(){
   try {
-    const nome = document.getElementById('inputNome').value.trim();
+    const nome  = document.getElementById('inputNome').value.trim();
     const turma = document.getElementById('inputTurma').value.trim();
-    const err = document.getElementById('onboardErr');
+    const err   = document.getElementById('onboardErr');
     if(!nome || !turma){
-      err.style.display='block';
-      err.textContent='⚠️ Preencha nome e turma antes de continuar.';
+      err.style.display = 'block';
+      err.textContent   = '⚠️ Preencha nome e turma antes de continuar.';
       return;
     }
-    err.style.display='none';
-    state.nome = nome;
-    state.turma = turma;
-    if(!state.progress) state.progress = {};
+    err.style.display = 'none';
+    state.nome    = nome;
+    state.turma   = turma;
+    if(!state.progress)   state.progress   = {};
     if(!state.timestamps) state.timestamps = {};
-    if(!state.sessionId){
-      state.sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2,6);
-    }
+    getSessionId();
     saveState();
-    document.getElementById('onboardOverlay').style.display='none';
+    document.getElementById('onboardOverlay').style.display = 'none';
     applyPlayerTag();
     updateUI();
   } catch(e) {
+    console.error('startGame erro:', e);
     alert('Erro ao iniciar: ' + e.message);
   }
 }
 
 function applyPlayerTag(){
   if(!state.nome) return;
-  document.getElementById('tagNome').textContent = state.nome;
+  document.getElementById('tagNome').textContent  = state.nome;
   document.getElementById('tagTurma').textContent = state.turma;
-  document.getElementById('playerTag').style.display='inline-flex';
+  document.getElementById('playerTag').style.display = 'inline-flex';
 }
 
-// ── PROGRESS UI ─────────────────────────────
+// ── PROGRESS UI ───────────────────────────────────────────────────
 function updateUI(){
-  const done = ORDER.filter(k => state.progress && state.progress[k]);
+  const done  = ORDER.filter(k => state.progress && state.progress[k]);
   const count = done.length;
-  document.getElementById('progressCount').textContent = count+'/'+TOTAL;
-  document.getElementById('progressBar').style.width = (count/TOTAL*100)+'%';
-  ORDER.forEach(k=>{
-    const pm = document.getElementById('pm-'+k);
-    if(pm) pm.classList.toggle('earned', !!(state.progress&&state.progress[k]));
-    const card = document.getElementById('card-'+k);
-    const cs = document.getElementById('cs-'+k);
-    if(state.progress&&state.progress[k]){
+  document.getElementById('progressCount').textContent = count + '/8';
+  document.getElementById('progressBar').style.width   = (count / TOTAL * 100) + '%';
+  ORDER.forEach(k => {
+    const pm   = document.getElementById('pm-' + k);
+    if(pm) pm.classList.toggle('earned', !!(state.progress && state.progress[k]));
+    const card = document.getElementById('card-' + k);
+    const cs   = document.getElementById('cs-' + k);
+    if(state.progress && state.progress[k]){
       card.classList.add('done');
-      cs.textContent='✅ Concluída'; cs.className='card-status status-done';
+      cs.textContent = '✅ Concluída'; cs.className = 'card-status status-done';
     } else {
       card.classList.remove('done');
-      cs.textContent='⏳ Pendente'; cs.className='card-status status-pending';
+      cs.textContent = '⏳ Pendente'; cs.className = 'card-status status-pending';
     }
   });
-  if(count===TOTAL){
-    document.getElementById('finalNome').textContent = state.nome||'';
+  if(count === TOTAL){
+    document.getElementById('finalNome').textContent = state.nome || '';
     document.getElementById('finalScreen').classList.add('visible');
   }
 }
 
-// ── PROTO DATA ───────────────────────────────
+// ── PROTO DATA ────────────────────────────────────────────────────
 const protos = {
   wifi:{icon:'📡',name:'Wi-Fi',sub:'Camada de transmissão sem fio',
     analogy:'Imagine que você quer enviar uma carta, mas em vez de colocá-la no correio, você simplesmente grita e a carta "voa" pelo ar até o destinatário. É exatamente isso que o Wi-Fi faz — envia dados em forma de ondas de rádio invisíveis.',
     explain:'O Wi-Fi usa ondas de rádio para transmitir dados entre o seu celular/notebook e o roteador. A velocidade depende da distância, paredes e interferências. Quanto mais longe, mais fraco o sinal.',
     flow:['📱 Celular','→','📡 Ondas de rádio','→','🔲 Roteador','→','🌐 Internet'],
-    mission:{title:'Missão 1 — O Mensageiro do Ar',story:'O Wi-Fi é responsável por levar os dados do seu aparelho até o roteador, como ondas de rádio invisíveis. Mas será que sua conexão é rápida ou lenta? Vamos descobrir!',challenge:'Abra o Speedtest, clique em "Go" e aguarde o resultado. Digite abaixo a velocidade de Download que apareceu (só o número).',toolUrl:'https://www.speedtest.net',toolLabel:'🚀 Abrir Speedtest',type:'input',placeholder:'Ex: 45',validate:v=>{const n=parseFloat(v.replace(',','.'));return !isNaN(n)&&n>0;},medal:'🏅 Medalha Wi-Fi desbloqueada!',hint:'Dica: o número aparece ao lado de "Download" em Mbps.'}
+    mission:{title:'Missão 1 — O Mensageiro do Ar',story:'O Wi-Fi é responsável por levar os dados do seu aparelho até o roteador, como ondas de rádio invisíveis. Mas será que sua conexão é rápida ou lenta? Vamos descobrir!',challenge:'Abra o Speedtest, clique em "Go" e aguarde o resultado. Digite abaixo a velocidade de Download que apareceu (só o número).',toolUrl:'https://www.speedtest.net',toolLabel:'🚀 Abrir Speedtest',type:'input',placeholder:'Ex: 45',validate:function(v){const n=parseFloat(v.replace(',','.'));return !isNaN(n)&&n>0;},medal:'🏅 Medalha Wi-Fi desbloqueada!',hint:'Dica: o número aparece ao lado de "Download" em Mbps.'}
   },
   dhcp:{icon:'🚪',name:'DHCP',sub:'Dynamic Host Configuration Protocol',
     analogy:'Imagine um edifício com porteiro. Quando você chega, ele te dá um número de apartamento. O DHCP faz isso: dá um endereço IP a cada aparelho que entra na rede.',
     explain:'Cada aparelho na internet precisa de um endereço único chamado IP. O DHCP distribui esses endereços automaticamente — sem ele você teria que configurar tudo manualmente.',
     flow:['💻 Aparelho entra','→','🚪 "Posso entrar?"','→','✅ "Seu IP: 192.168.0.10"'],
-    mission:{title:'Missão 2 — O Porteiro da Rede',story:'Todo aparelho conectado recebe um número único chamado endereço IP — como o número de apartamento na internet.',challenge:'Acesse o site abaixo e copie o endereço IP que aparece na tela.',toolUrl:'https://whatismyipaddress.com',toolLabel:'🔍 Ver meu endereço IP',type:'input',placeholder:'Ex: 187.45.23.10',validate:v=>v.includes('.'),medal:'🏅 Medalha DHCP desbloqueada!',hint:'Dica: o endereço IP tem grupos de números separados por pontos.'}
+    mission:{title:'Missão 2 — O Porteiro da Rede',story:'Todo aparelho conectado recebe um número único chamado endereço IP — como o número de apartamento na internet.',challenge:'Acesse o site abaixo e copie o endereço IP que aparece na tela.',toolUrl:'https://whatismyipaddress.com',toolLabel:'🔍 Ver meu endereço IP',type:'input',placeholder:'Ex: 187.45.23.10',validate:function(v){return v.includes('.');},medal:'🏅 Medalha DHCP desbloqueada!',hint:'Dica: o endereço IP tem grupos de números separados por pontos.'}
   },
   dns:{icon:'📒',name:'DNS',sub:'Domain Name System — a agenda da internet',
     analogy:'Você sabe o nome do seu amigo, mas não sabe o número de cor. Então abre a agenda. O DNS faz o mesmo: você digita "google.com" e ele descobre o endereço numérico real.',
@@ -457,195 +456,205 @@ const protos = {
   }
 };
 
-// ── SELECT PROTO ────────────────────────────
+// ── SELECT PROTO ──────────────────────────────────────────────────
 function selectProto(key){
   document.querySelectorAll('.proto-card').forEach(c=>c.classList.remove('selected'));
   document.getElementById('card-'+key).classList.add('selected');
   const p = protos[key];
-  document.getElementById('dIcon').textContent=p.icon;
-  document.getElementById('dName').textContent=p.name;
-  document.getElementById('dSub').textContent=p.sub;
-  document.getElementById('dAnalogy').textContent=p.analogy;
-  document.getElementById('dExplain').textContent=p.explain;
-  const flow=document.getElementById('dFlow');
-  flow.innerHTML='';
-  p.flow.forEach(s=>{
-    const el=document.createElement('span');
-    if(s==='→'||s.startsWith('⇄')){el.className='flow-arr';el.textContent=s;}
-    else{el.className='flow-step';el.textContent=s;}
+  document.getElementById('dIcon').textContent    = p.icon;
+  document.getElementById('dName').textContent    = p.name;
+  document.getElementById('dSub').textContent     = p.sub;
+  document.getElementById('dAnalogy').textContent = p.analogy;
+  document.getElementById('dExplain').textContent = p.explain;
+  const flow = document.getElementById('dFlow');
+  flow.innerHTML = '';
+  p.flow.forEach(s => {
+    const el = document.createElement('span');
+    if(s==='→'||s.startsWith('⇄')){ el.className='flow-arr'; el.textContent=s; }
+    else{ el.className='flow-step'; el.textContent=s; }
     flow.appendChild(el);
   });
   buildMission(key, p.mission);
-  const panel=document.getElementById('detailPanel');
+  const panel = document.getElementById('detailPanel');
   panel.classList.add('visible');
   panel.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-// ── BUILD MISSION ───────────────────────────
+// ── BUILD MISSION ─────────────────────────────────────────────────
 function buildMission(key, m){
-  const box=document.getElementById('missionBox');
-  const done=!!(state.progress&&state.progress[key]);
+  const box  = document.getElementById('missionBox');
+  const done = !!(state.progress && state.progress[key]);
   if(done){
-    box.innerHTML=`<div class="mission-box done-box"><div class="mission-title">✅ ${m.title}</div><div class="mission-done-state"><div class="medal">🏅</div><p>Missão concluída! Medalha de ${protos[key].name} conquistada.</p></div></div>`;
+    box.innerHTML = `<div class="mission-box done-box"><div class="mission-title">✅ ${m.title}</div><div class="mission-done-state"><div class="medal">🏅</div><p>Missão concluída! Medalha de ${protos[key].name} conquistada.</p></div></div>`;
     return;
   }
-  let html=`<div class="mission-box" id="mbox-${key}"><div class="mission-title">🎯 ${m.title}</div><div class="mission-story">${m.story}</div><p class="mission-challenge">📋 Desafio: ${m.challenge}</p>`;
-  if(m.toolUrl) html+=`<a class="tool-btn" href="${m.toolUrl}" target="_blank">${m.toolLabel} ↗</a>`;
+  let html = `<div class="mission-box" id="mbox-${key}"><div class="mission-title">🎯 ${m.title}</div><div class="mission-story">${m.story}</div><p class="mission-challenge">📋 Desafio: ${m.challenge}</p>`;
+  if(m.toolUrl) html += `<a class="tool-btn" href="${m.toolUrl}" target="_blank">${m.toolLabel} ↗</a>`;
   if(m.type==='input'){
-    html+=`<input class="mission-input" id="mi-${key}" type="text" placeholder="${m.placeholder||''}" />`;
-    if(m.hint) html+=`<p style="font-size:12px;color:var(--muted);margin-bottom:10px;">💡 ${m.hint}</p>`;
-    html+=`<button class="submit-btn" onclick="submitInput('${key}')">✅ Concluir Missão</button>`;
+    html += `<input class="mission-input" id="mi-${key}" type="text" placeholder="${m.placeholder||''}" />`;
+    if(m.hint) html += `<p style="font-size:12px;color:var(--muted);margin-bottom:10px;">💡 ${m.hint}</p>`;
+    html += `<button class="submit-btn" type="button" onclick="submitInput('${key}')">✅ Concluir Missão</button>`;
   } else if(m.type==='multiple'){
-    html+=`<p style="font-weight:600;font-size:14px;margin-bottom:10px;">❓ ${m.question}</p><div class="alt-list" id="altlist-${key}">`;
-    m.options.forEach((o,i)=>{ html+=`<button class="alt-btn" onclick="submitMultiple('${key}',${i})">${o}</button>`; });
-    html+=`</div>`;
+    html += `<p style="font-weight:600;font-size:14px;margin-bottom:10px;">❓ ${m.question}</p><div class="alt-list" id="altlist-${key}">`;
+    m.options.forEach((o,i) => { html += `<button class="alt-btn" type="button" onclick="submitMultiple('${key}',${i})">${o}</button>`; });
+    html += `</div>`;
   } else if(m.type==='packets'){
-    html+=buildPacketsHTML(key,m);
+    html += buildPacketsHTML(key, m);
   }
-  html+=`<div class="feedback" id="fb-${key}"></div></div>`;
-  box.innerHTML=html;
-  if(m.type==='packets') initDragDrop(key,m);
+  html += `<div class="feedback" id="fb-${key}"></div></div>`;
+  box.innerHTML = html;
+  if(m.type==='packets') initDragDrop(key, m);
 }
 
-// ── PACKETS ──────────────────────────────────
-function buildPacketsHTML(key,m){
-  const shuffled=[...m.packets].sort(()=>Math.random()-.5);
-  let h=`<p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:8px;">📦 Pacotes recebidos (embaralhados):</p><div class="packets-area" id="src-${key}">`;
-  shuffled.forEach((p,i)=>{ h+=`<div class="packet" id="pkt-${key}-${i}" draggable="true" data-val="${p}">${p}</div>`; });
-  h+=`</div><p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;">🔧 Clique nos pacotes para montar a mensagem:</p><div class="drop-zone" id="dz-${key}"><span class="dz-hint" id="dzhint-${key}">Clique nos pacotes acima para adicioná-los aqui</span></div><div style="margin-bottom:10px"><button onclick="clearDropZone('${key}')" style="background:none;border:1.5px solid #dadce0;border-radius:8px;padding:6px 14px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit">🔄 Limpar</button></div><button class="submit-btn" onclick="submitPackets('${key}')">✅ Verificar Montagem</button>`;
+// ── PACKETS ───────────────────────────────────────────────────────
+function buildPacketsHTML(key, m){
+  const shuffled = [...m.packets].sort(()=>Math.random()-.5);
+  let h = `<p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:8px;">📦 Pacotes recebidos (embaralhados):</p><div class="packets-area" id="src-${key}">`;
+  shuffled.forEach((p,i) => { h += `<div class="packet" id="pkt-${key}-${i}" draggable="true" data-val="${p}">${p}</div>`; });
+  h += `</div><p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;">🔧 Clique nos pacotes para montar a mensagem:</p><div class="drop-zone" id="dz-${key}"><span class="dz-hint" id="dzhint-${key}">Clique nos pacotes acima para adicioná-los aqui</span></div><div style="margin-bottom:10px"><button type="button" onclick="clearDropZone('${key}')" style="background:none;border:1.5px solid #dadce0;border-radius:8px;padding:6px 14px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit">🔄 Limpar</button></div><button class="submit-btn" type="button" onclick="submitPackets('${key}')">✅ Verificar Montagem</button>`;
   return h;
 }
-function initDragDrop(key,m){
-  dropZoneItems=[];
-  const src=document.getElementById('src-'+key);
-  const dz=document.getElementById('dz-'+key);
+function initDragDrop(key, m){
+  dropZoneItems = [];
+  const src = document.getElementById('src-'+key);
+  const dz  = document.getElementById('dz-'+key);
   if(!src||!dz) return;
-  src.querySelectorAll('.packet').forEach(pkt=>{
-    pkt.onclick=()=>{
+  src.querySelectorAll('.packet').forEach(pkt => {
+    pkt.onclick = () => {
       dropZoneItems.push(pkt.dataset.val);
-      pkt.style.opacity='.35'; pkt.style.pointerEvents='none';
+      pkt.style.opacity = '.35'; pkt.style.pointerEvents = 'none';
       renderDropZone(key);
     };
-    pkt.addEventListener('dragstart',e=>{ dragSrc=pkt; setTimeout(()=>pkt.classList.add('dragging'),0); });
-    pkt.addEventListener('dragend',()=>pkt.classList.remove('dragging'));
+    pkt.addEventListener('dragstart', () => { dragSrc = pkt; setTimeout(()=>pkt.classList.add('dragging'),0); });
+    pkt.addEventListener('dragend',   () => pkt.classList.remove('dragging'));
   });
-  dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.classList.add('drag-over'); });
-  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
-  dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); if(dragSrc){ dropZoneItems.push(dragSrc.dataset.val); dragSrc.style.opacity='.35'; dragSrc.style.pointerEvents='none'; renderDropZone(key); dragSrc=null; } });
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    if(dragSrc){ dropZoneItems.push(dragSrc.dataset.val); dragSrc.style.opacity='.35'; dragSrc.style.pointerEvents='none'; renderDropZone(key); dragSrc=null; }
+  });
 }
 function renderDropZone(key){
-  const dz=document.getElementById('dz-'+key);
-  const hint=document.getElementById('dzhint-'+key);
+  const dz   = document.getElementById('dz-'+key);
+  const hint = document.getElementById('dzhint-'+key);
   if(!dz) return;
   dz.querySelectorAll('.packet').forEach(p=>p.remove());
-  if(hint) hint.style.display=dropZoneItems.length?'none':'inline';
-  dropZoneItems.forEach((val,i)=>{
-    const el=document.createElement('div');
-    el.className='packet'; el.textContent=val; el.style.cursor='pointer'; el.title='Clique para remover';
-    el.onclick=()=>{ dropZoneItems.splice(i,1); const src=document.querySelectorAll(`[data-val="${val}"]`); src.forEach(p=>{ if(p.style.opacity==='.35'){ p.style.opacity='1'; p.style.pointerEvents='auto'; return; } }); renderDropZone(key); initDragDrop(key,protos[key].mission); };
+  if(hint) hint.style.display = dropZoneItems.length ? 'none' : 'inline';
+  dropZoneItems.forEach((val,i) => {
+    const el = document.createElement('div');
+    el.className = 'packet'; el.textContent = val; el.style.cursor = 'pointer'; el.title = 'Clique para remover';
+    el.onclick = () => {
+      dropZoneItems.splice(i,1);
+      document.querySelectorAll(`[data-val="${val}"]`).forEach(p => { if(p.style.opacity==='.35'){ p.style.opacity='1'; p.style.pointerEvents='auto'; } });
+      renderDropZone(key);
+    };
     dz.appendChild(el);
   });
 }
 function clearDropZone(key){
-  dropZoneItems=[];
-  const src=document.getElementById('src-'+key);
+  dropZoneItems = [];
+  const src = document.getElementById('src-'+key);
   if(src) src.querySelectorAll('.packet').forEach(p=>{ p.style.opacity='1'; p.style.pointerEvents='auto'; });
   renderDropZone(key);
 }
 
-// ── SUBMIT ───────────────────────────────────
+// ── SUBMIT ────────────────────────────────────────────────────────
 function submitInput(key){
-  const val=document.getElementById('mi-'+key).value.trim();
-  const m=protos[key].mission;
+  const val = document.getElementById('mi-'+key).value.trim();
+  const m   = protos[key].mission;
   if(m.validate(val)) completeMission(key);
-  else showFeedback(key,false,'❌ Resposta inválida. Verifique e tente novamente!');
+  else showFeedback(key, false, '❌ Resposta inválida. Verifique e tente novamente!');
 }
-function submitMultiple(key,idx){
-  const m=protos[key].mission;
-  const btns=document.querySelectorAll(`#altlist-${key} .alt-btn`);
-  btns.forEach(b=>b.disabled=true);
-  if(idx===m.correct){ btns[idx].classList.add('correct'); completeMission(key); }
-  else {
+function submitMultiple(key, idx){
+  const m    = protos[key].mission;
+  const btns = document.querySelectorAll(`#altlist-${key} .alt-btn`);
+  btns.forEach(b => b.disabled = true);
+  if(idx === m.correct){
+    btns[idx].classList.add('correct');
+    completeMission(key);
+  } else {
     btns[idx].classList.add('wrong'); btns[m.correct].classList.add('correct');
-    showFeedback(key,false,'❌ Não foi dessa vez! A resposta correta está em verde. Tente de novo!');
-    setTimeout(()=>{ btns.forEach(b=>{ b.disabled=false; b.className='alt-btn'; }); hideFeedback(key); },2500);
+    showFeedback(key, false, '❌ Não foi dessa vez! A resposta correta está em verde. Tente de novo!');
+    setTimeout(() => { btns.forEach(b => { b.disabled=false; b.className='alt-btn'; }); hideFeedback(key); }, 2500);
   }
 }
 function submitPackets(key){
-  const m=protos[key].mission;
-  const assembled=dropZoneItems.join(' ').trim().toUpperCase();
-  const joined=dropZoneItems.join('').trim().toUpperCase();
-  const correct=m.answer.toUpperCase();
-  const alts=(m.altAnswers||[]).map(a=>a.toUpperCase());
-  if(assembled===correct||alts.includes(assembled)||joined===correct.replace(/ /g,'')||alts.map(a=>a.replace(/ /g,'')).includes(joined)) completeMission(key);
-  else showFeedback(key,false,'❌ Quase lá! Verifique a ordem. A mensagem começa com OLA... Clique em Limpar e tente de novo!');
+  const m        = protos[key].mission;
+  const assembled = dropZoneItems.join(' ').trim().toUpperCase();
+  const joined    = dropZoneItems.join('').trim().toUpperCase();
+  const correct   = m.answer.toUpperCase();
+  const alts      = (m.altAnswers||[]).map(a=>a.toUpperCase());
+  if(assembled===correct || alts.includes(assembled) || joined===correct.replace(/ /g,'') || alts.map(a=>a.replace(/ /g,'')).includes(joined))
+    completeMission(key);
+  else
+    showFeedback(key, false, '❌ Quase lá! Verifique a ordem. A mensagem começa com OLA... Clique em Limpar e tente de novo!');
 }
 
-// ── COMPLETE MISSION ─────────────────────────
+// ── COMPLETE ──────────────────────────────────────────────────────
 function completeMission(key){
-  if(!state.progress) state.progress={};
-  if(!state.timestamps) state.timestamps={};
-  state.progress[key]=true;
-  state.timestamps[key]=new Date().toISOString();
+  if(!state.progress)   state.progress   = {};
+  if(!state.timestamps) state.timestamps = {};
+  state.progress[key]   = true;
+  state.timestamps[key] = new Date().toISOString();
   saveState();
   updateUI();
-  const m=protos[key].mission;
-  const fb=document.getElementById('fb-'+key);
-  if(fb){ fb.className='feedback success'; fb.innerHTML=`🎉 ${m.medal}<br><span class="medal-reveal">🏅</span><br><small>Incrível! Missão conclfunction sendToSheets(isFinal){
-  if(!APPS_SCRIPT_URL) return;
-  const prog = ORDER.map(k=>({
-    protocolo: k,
-    concluido: !!(state.progress&&state.progress[k]),
-    horario: (state.timestamps&&state.timestamps[k])||''
-  }));
-  const params = new URLSearchParams({
-    sessionId: getSessionId(),
-    nome: state.nome||'',
-    turma: state.turma||'',
-    total: String(ORDER.filter(k=>state.progress&&state.progress[k]).length),
-    finalizado: isFinal ? '1' : '0',
-    dataEnvio: new Date().toISOString(),
-    progresso: JSON.stringify(prog)
-  });
-  const url = APPS_SCRIPT_URL + '?' + params.toString();
-  if(isFinal){
-    document.getElementById('sendingOverlay').classList.add('visible');
-    document.getElementById('sendingMsg').textContent='Enviando resultado final ao professor...';
-  }
-  const img = new Image();
-  img.onload = img.onerror = function(){
-    if(isFinal) document.getElementById('sendingOverlay').classList.remove('visible');
-  };
-  img.src = url;
-}.';
-  }
-  const img = new Image();
-  img.onload = img.onerror = function(){
-    if(isFinal) document.getElementById('sendingOverlay').classList.remove('visible');
-  };
-  img.src = url;
+  const m  = protos[key].mission;
+  const fb = document.getElementById('fb-'+key);
+  if(fb){ fb.className='feedback success'; fb.innerHTML=`🎉 ${m.medal}<br><span class="medal-reveal">🏅</span><br><small>Incrível! Missão concluída!</small>`; }
+  sendToSheets(false);
+  setTimeout(() => buildMission(key, m), 2000);
 }
 
+// ── SEND TO SHEETS ────────────────────────────────────────────────
+function sendToSheets(isFinal){
+  if(!APPS_SCRIPT_URL) return;
+  const prog = ORDER.map(k => ({
+    protocolo: k,
+    concluido: !!(state.progress && state.progress[k]),
+    horario:   (state.timestamps && state.timestamps[k]) || ''
+  }));
+  const params = new URLSearchParams({
+    sessionId:  getSessionId(),
+    nome:       state.nome  || '',
+    turma:      state.turma || '',
+    total:      String(ORDER.filter(k => state.progress && state.progress[k]).length),
+    finalizado: isFinal ? '1' : '0',
+    dataEnvio:  new Date().toISOString(),
+    progresso:  JSON.stringify(prog)
+  });
+  if(isFinal){
+    document.getElementById('sendingOverlay').classList.add('visible');
+    document.getElementById('sendingMsg').textContent = 'Enviando resultado final ao professor...';
+  }
+  const img = new Image();
+  img.onload = img.onerror = function(){
+    if(isFinal) document.getElementById('sendingOverlay').classList.remove('visible');
+  };
+  img.src = APPS_SCRIPT_URL + '?' + params.toString();
+}
+
+// ── CERTIFICATE / FINAL ───────────────────────────────────────────
 function showCertificate(){
   sendToSheets(true);
-  const d=new Date();
-  document.getElementById('certNome').textContent=state.nome||'';
-  document.getElementById('certTurma').textContent='Turma: '+(state.turma||'');
-  document.getElementById('certDate').textContent='Emitido em: '+d.toLocaleDateString('pt-BR',{year:'numeric',month:'long',day:'numeric'});
-  const cert=document.getElementById('certificateBox');
+  const d = new Date();
+  document.getElementById('certNome').textContent  = state.nome  || '';
+  document.getElementById('certTurma').textContent = 'Turma: ' + (state.turma || '');
+  document.getElementById('certDate').textContent  = 'Emitido em: ' + d.toLocaleDateString('pt-BR',{year:'numeric',month:'long',day:'numeric'});
+  const cert = document.getElementById('certificateBox');
   cert.classList.add('visible');
   cert.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-function showFeedback(key,ok,msg){
-  const fb=document.getElementById('fb-'+key);
+function showFeedback(key, ok, msg){
+  const fb = document.getElementById('fb-'+key);
   if(!fb) return;
-  fb.className='feedback '+(ok?'success':'error');
-  fb.textContent=msg;
+  fb.className  = 'feedback ' + (ok ? 'success' : 'error');
+  fb.textContent = msg;
 }
 function hideFeedback(key){
-  const fb=document.getElementById('fb-'+key);
-  if(fb){fb.className='feedback';fb.textContent='';}
+  const fb = document.getElementById('fb-'+key);
+  if(fb){ fb.className='feedback'; fb.textContent=''; }
 }
 function closePanel(){
   document.getElementById('detailPanel').classList.remove('visible');
@@ -653,8 +662,8 @@ function closePanel(){
 }
 function confirmReset(){
   if(confirm('Tem certeza que quer reiniciar? Todo o progresso será perdido.')){
-    const nome=state.nome; const turma=state.turma;
-    state={nome,turma,progress:{},timestamps:{}};
+    const nome = state.nome; const turma = state.turma; const sid = state.sessionId;
+    state = {nome, turma, sessionId: sid, progress:{}, timestamps:{}};
     saveState();
     document.getElementById('finalScreen').classList.remove('visible');
     document.getElementById('certificateBox').classList.remove('visible');
@@ -662,21 +671,20 @@ function confirmReset(){
   }
 }
 
-// ── INIT ─────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────
 (function(){
   try {
     if(state.nome && state.turma){
-      document.getElementById('onboardOverlay').style.display='none';
+      document.getElementById('onboardOverlay').style.display = 'none';
       applyPlayerTag();
       updateUI();
     } else {
-      document.getElementById('onboardOverlay').style.display='flex';
+      document.getElementById('onboardOverlay').style.display = 'flex';
     }
   } catch(e) {
-    // estado corrompido — reseta e mostra tela inicial
     localStorage.removeItem(STORAGE_KEY);
     state = {};
-    document.getElementById('onboardOverlay').style.display='flex';
+    document.getElementById('onboardOverlay').style.display = 'flex';
   }
 })();
 </script>
