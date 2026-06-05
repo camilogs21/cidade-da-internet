@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌎 A Cidade da Internet — Jogo das Missões</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1a73e8;--blue-light:#e8f0fe;--blue-dark:#0d47a1;
+  --green:#1e8e3e;--green-light:#e6f4ea;
+  --amber:#f57c00;--amber-light:#fff3e0;
+  --red:#d93025;--red-light:#fce8e6;
+  --purple:#7b1fa2;--purple-light:#f3e5f5;
+  --teal:#00695c;--teal-light:#e0f2f1;
+  --indigo:#3949ab;--indigo-light:#e8eaf6;
+  --bg:#f8f9ff;--card:#fff;--text:#1a1a2e;--muted:#5f6368;
+  --radius:14px;--shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:3rem}
+
+/* ONBOARDING */
+.onboard-overlay{position:fixed;inset:0;background:rgba(15,20,40,0.85);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem}
+.onboard-box{background:#fff;border-radius:20px;padding:2.5rem 2rem;max-width:440px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.25)}
+.onboard-icon{font-size:52px;margin-bottom:.75rem}
+.onboard-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:.5rem}
+.onboard-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:1.5rem}
+.onboard-field{width:100%;padding:12px 16px;border:2px solid #dadce0;border-radius:12px;font-size:15px;margin-bottom:12px;outline:none;transition:border-color .15s;font-family:inherit}
+.onboard-field:focus{border-color:var(--blue)}
+.onboard-btn{width:100%;padding:13px;background:linear-gradient(135deg,#1a73e8,#0d47a1);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;font-family:inherit}
+.onboard-btn:hover{opacity:.9}
+.onboard-btn:disabled{opacity:.4;cursor:default}
+.onboard-err{font-size:13px;color:var(--red);margin-bottom:10px;display:none}
+
+/* HEADER */
+.game-header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:#fff;padding:2rem 1rem 1.5rem;text-align:center}
+.game-title{font-size:clamp(20px,5vw,34px);font-weight:700;letter-spacing:-.5px;margin-bottom:4px}
+.game-title span{color:#ffd700}
+.game-subtitle{font-size:13px;opacity:.75;margin-bottom:1.25rem}
+.player-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border-radius:99px;padding:6px 16px;font-size:13px;margin-bottom:1.25rem}
+.player-tag strong{color:#ffd700}
+
+.progress-box{background:rgba(255,255,255,.1);border-radius:var(--radius);padding:1rem 1.25rem;max-width:560px;margin:0 auto}
+.progress-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.progress-title{font-size:15px;font-weight:600}
+.progress-count{font-size:22px;font-weight:700;color:#ffd700}
+.progress-bar-bg{height:14px;background:rgba(255,255,255,.15);border-radius:99px;overflow:hidden}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,#ffd700,#ff9800);border-radius:99px;transition:width .6s cubic-bezier(.4,0,.2,1);width:0%}
+.progress-medals{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+.prog-medal{font-size:20px;opacity:.25;transition:opacity .4s,transform .4s}
+.prog-medal.earned{opacity:1;transform:scale(1.15)}
+
+/* JOURNEY */
+.journey-section{max-width:800px;margin:1.5rem auto 0;padding:0 1rem}
+.journey-wrap{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px;background:#fff;border-radius:var(--radius);padding:1rem;box-shadow:var(--shadow)}
+.jnode{padding:6px 11px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;border:2px solid transparent;transition:transform .12s;white-space:nowrap}
+.jnode:hover{transform:translateY(-2px)}
+.jarrow{font-size:16px;color:#aaa}
+
+/* GRID */
+.cards-section{max-width:800px;margin:1.5rem auto 0;padding:0 1rem}
+.section-hint{font-size:13px;color:var(--muted);margin-bottom:12px;text-align:center}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px}
+
+.proto-card{background:var(--card);border-radius:var(--radius);padding:1.1rem;cursor:pointer;border:2.5px solid #e8eaed;transition:all .18s;position:relative;box-shadow:var(--shadow)}
+.proto-card:hover{border-color:#aaa;transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.proto-card.done{border-color:var(--green)}
+.proto-card.selected{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,115,232,.18)}
+.card-icon{font-size:28px;margin-bottom:8px}
+.card-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.card-tagline{font-size:12px;color:var(--muted);line-height:1.5}
+.card-badge{position:absolute;top:8px;right:8px;font-size:18px;display:none}
+.proto-card.done .card-badge{display:block}
+.card-status{margin-top:10px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;display:inline-block}
+.status-pending{background:#f1f3f4;color:var(--muted)}
+.status-done{background:var(--green-light);color:var(--green)}
+
+/* DETAIL PANEL */
+.detail-panel{max-width:800px;margin:1rem auto 0;padding:0 1rem;display:none}
+.detail-panel.visible{display:block}
+.panel-inner{background:var(--card);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow)}
+.panel-header{display:flex;align-items:center;gap:12px;margin-bottom:1rem}
+.ph-icon{font-size:36px}
+.ph-name{font-size:20px;font-weight:700}
+.ph-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.close-btn{margin-left:auto;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);padding:4px}
+.close-btn:hover{color:var(--text)}
+.section-block{background:#f8f9ff;border-radius:10px;padding:1rem;margin-bottom:1rem}
+.block-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.block-text{font-size:14px;color:var(--text);line-height:1.7}
+.analogy-block{background:var(--amber-light);border-left:4px solid var(--amber);border-radius:0 10px 10px 0;padding:1rem;margin-bottom:1rem}
+.analogy-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--amber);margin-bottom:5px}
+.flow-wrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
+.flow-step{background:#e8f0fe;color:#1a73e8;font-size:12px;font-weight:600;padding:5px 10px;border-radius:8px}
+.flow-arr{color:#aaa;font-size:14px}
+
+/* MISSION */
+.mission-box{border:2.5px solid var(--blue);border-radius:var(--radius);padding:1.25rem;margin-top:1rem;background:var(--blue-light)}
+.mission-box.done-box{border-color:var(--green);background:var(--green-light)}
+.mission-title{font-size:16px;font-weight:700;color:var(--blue-dark);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.mission-box.done-box .mission-title{color:var(--green)}
+.mission-story{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:12px;background:#fff;border-radius:10px;padding:.9rem}
+.mission-challenge{font-size:13px;color:var(--muted);margin-bottom:10px;font-style:italic}
+.tool-btn{display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;margin-bottom:14px;transition:background .15s}
+.tool-btn:hover{background:var(--blue-dark)}
+.mission-input{width:100%;padding:10px 14px;border:2px solid #dadce0;border-radius:10px;font-size:14px;margin-bottom:10px;background:#fff;transition:border-color .15s;outline:none;font-family:inherit}
+.mission-input:focus{border-color:var(--blue)}
+.alt-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.alt-btn{background:#fff;border:2px solid #dadce0;border-radius:10px;padding:10px 14px;font-size:14px;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit}
+.alt-btn:hover{border-color:var(--blue);background:var(--blue-light)}
+.alt-btn.correct{border-color:var(--green);background:var(--green-light);color:var(--green);font-weight:600}
+.alt-btn.wrong{border-color:var(--red);background:var(--red-light);color:var(--red)}
+.alt-btn:disabled{cursor:default}
+
+/* PACKETS */
+.packets-area{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.packet{background:var(--indigo-light);color:var(--indigo);border:2px solid var(--indigo);border-radius:8px;padding:8px 14px;font-size:14px;font-weight:700;cursor:grab;user-select:none;transition:transform .12s}
+.packet:hover{transform:scale(1.05)}
+.packet.dragging{opacity:.5}
+.drop-zone{min-height:44px;background:#fff;border:2px dashed #dadce0;border-radius:10px;padding:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;transition:border-color .15s}
+.drop-zone.drag-over{border-color:var(--blue);background:var(--blue-light)}
+.dz-hint{font-size:12px;color:#bbb;font-style:italic}
+
+.submit-btn{background:linear-gradient(135deg,#1a73e8,#0d47a1);color:#fff;border:none;border-radius:10px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;width:100%;transition:opacity .15s;font-family:inherit}
+.submit-btn:hover{opacity:.9}
+.feedback{border-radius:10px;padding:1rem;margin-top:10px;font-size:14px;font-weight:600;display:none}
+.feedback.success{background:var(--green-light);color:var(--green);display:block}
+.feedback.error{background:var(--red-light);color:var(--red);display:block}
+.medal-reveal{font-size:32px;display:block;text-align:center;margin-top:8px;animation:popIn .5s cubic-bezier(.36,.07,.19,.97)}
+@keyframes popIn{0%{transform:scale(0) rotate(-15deg);opacity:0}60%{transform:scale(1.3) rotate(5deg)}100%{transform:scale(1) rotate(0deg);opacity:1}}
+.mission-done-state{text-align:center;padding:1rem}
+.mission-done-state .medal{font-size:40px}
+.mission-done-state p{color:var(--green);font-weight:600;font-size:15px;margin-top:8px}
+
+/* SENDING OVERLAY */
+.sending-overlay{position:fixed;inset:0;background:rgba(15,20,40,.75);z-index:888;display:none;align-items:center;justify-content:center}
+.sending-overlay.visible{display:flex}
+.sending-box{background:#fff;border-radius:16px;padding:2rem;text-align:center;max-width:300px}
+.sending-spinner{font-size:36px;animation:spin 1s linear infinite;display:block;margin-bottom:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sending-msg{font-size:15px;font-weight:600;color:var(--text)}
+
+/* FINAL */
+.final-screen{max-width:800px;margin:2rem auto;padding:0 1rem;display:none}
+.final-screen.visible{display:block}
+.final-box{background:linear-gradient(135deg,#1a1a2e,#0f3460);color:#fff;border-radius:20px;padding:2.5rem;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.final-trophy{font-size:64px;margin-bottom:1rem;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.final-title{font-size:26px;font-weight:700;margin-bottom:8px}
+.final-title span{color:#ffd700}
+.final-subtitle{font-size:15px;opacity:.8;margin-bottom:1.5rem;line-height:1.6}
+.final-medals-row{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;font-size:28px;margin-bottom:1.5rem}
+.cert-btn{background:linear-gradient(135deg,#ffd700,#ff9800);color:#1a1a2e;border:none;border-radius:12px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;transition:transform .15s;font-family:inherit}
+.cert-btn:hover{transform:scale(1.04)}
+
+/* CERTIFICATE */
+.certificate{max-width:800px;margin:1.5rem auto;padding:0 1rem;display:none}
+.certificate.visible{display:block}
+.cert-inner{background:#fff;border:6px double #1a73e8;border-radius:20px;padding:2.5rem;text-align:center;box-shadow:var(--shadow)}
+.cert-logo{font-size:48px;margin-bottom:.5rem}
+.cert-heading{font-size:26px;font-weight:700;color:var(--blue-dark);letter-spacing:1px;text-transform:uppercase;margin-bottom:.5rem}
+.cert-line{width:60px;height:3px;background:var(--blue);margin:.5rem auto 1.5rem}
+.cert-student{font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
+.cert-turma{font-size:14px;color:var(--muted);margin-bottom:1rem}
+.cert-body{font-size:15px;color:var(--text);line-height:1.8;margin-bottom:1.5rem}
+.cert-body strong{color:var(--blue-dark)}
+.cert-medals-row{font-size:24px;margin:1rem 0;letter-spacing:4px}
+.cert-assinatura{margin-top:1.5rem;border-top:2px solid #e8eaed;padding-top:1rem}
+.cert-name{font-size:18px;font-weight:700;color:var(--text)}
+.cert-role{font-size:13px;color:var(--muted)}
+.cert-footer{font-size:12px;color:var(--muted);margin-top:1rem}
+
+/* RESET */
+.reset-area{max-width:800px;margin:.5rem auto 0;padding:0 1rem;text-align:right}
+.reset-btn{background:none;border:1.5px solid #dadce0;border-radius:8px;padding:6px 14px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .15s}
+.reset-btn:hover{border-color:var(--red);color:var(--red)}
+
+@media(max-width:480px){
+  .cards-grid{grid-template-columns:1fr 1fr}
+  .game-title{font-size:18px}
+  .onboard-box{padding:2rem 1.25rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING -->
+<div class="onboard-overlay" id="onboardOverlay">
+  <div class="onboard-box">
+    <div class="onboard-icon">🌎</div>
+    <div class="onboard-title">A Cidade da Internet</div>
+    <p class="onboard-sub">Antes de começar, diga quem você é!<br>Seu progresso será salvo e enviado ao professor.</p>
+    <p class="onboard-err" id="onboardErr">⚠️ Preencha nome e turma antes de continuar.</p>
+    <input class="onboard-field" id="inputNome" type="text" placeholder="Seu nome completo" maxlength="80" autocomplete="off" />
+    <input class="onboard-field" id="inputTurma" type="text" placeholder="Sua turma (ex: 201, Tarde-202...)" maxlength="30" autocomplete="off" />
+    <button class="onboard-btn" id="onboardBtn" onclick="startGame()">🚀 Começar o jogo!</button>
+  </div>
+</div>
+
+<!-- SENDING OVERLAY -->
+<div class="sending-overlay" id="sendingOverlay">
+  <div class="sending-box">
+    <span class="sending-spinner">⏳</span>
+    <div class="sending-msg" id="sendingMsg">Enviando resultado ao professor...</div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="game-header">
+  <div class="game-title">🌎 A <span>Cidade da Internet</span></div>
+  <div class="game-subtitle">Conheça os personagens que fazem a internet funcionar!</div>
+  <div class="player-tag" id="playerTag" style="display:none">
+    👤 <strong id="tagNome"></strong> — Turma <strong id="tagTurma"></strong>
+  </div>
+  <div class="progress-box">
+    <div class="progress-label">
+      <span class="progress-title">🏆 Progresso das Missões</span>
+      <span class="progress-count" id="progressCount">0/8</span>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar"></div></div>
+    <div class="progress-medals" id="progressMedals">
+      <span class="prog-medal" id="pm-wifi">📡</span>
+      <span class="prog-medal" id="pm-dhcp">🚪</span>
+      <span class="prog-medal" id="pm-dns">📒</span>
+      <span class="prog-medal" id="pm-tcp">📦</span>
+      <span class="prog-medal" id="pm-http">🍔</span>
+      <span class="prog-medal" id="pm-ftp">🚚</span>
+      <span class="prog-medal" id="pm-smtp">📬</span>
+      <span class="prog-medal" id="pm-ssh">🎮</span>
+    </div>
+  </div>
+</div>
+
+<!-- JOURNEY -->
+<div class="journey-section">
+  <div class="journey-wrap">
+    <div style="display:flex;align-items:center;gap:4px"><div class="jnode" style="background:#e8f0fe;color:#1a73e8" onclick="selectProto('wifi')">📱 Celular</div><span class="jarrow">→</span></div>
+    <div style="display:flex;align-items:center;gap:4px"><div class="jnode" style="background:#e8f0fe;color:#1a73e8" onclick="selectProto('wifi')">📡 Wi-Fi</div><span class="jarrow">→</span></div>
+    <div style="display:flex;align-items:center;gap:4px"><div class="jnode" style="background:#e6f4ea;color:#1e8e3e" onclick="selectProto('dhcp')">🚪 DHCP</div><span class="jarrow">→</span></div>
+    <div style="display:flex;align-items:center;gap:4px"><div class="jnode" style="background:#fff3e0;color:#f57c00" onclick="selectProto('dns')">📒 DNS</div><span class="jarrow">→</span></div>
+    <div style="display:flex;align-items:center;gap:4px"><div class="jnode" style="background:#fce4ec;color:#c2185b" onclick="selectProto('tcp')">📦 TCP/IP</div><span class="jarrow">→</span></div>
+    <div style="display:flex;align-items:center;gap:4px"><div class="jnode" style="background:#f3e5f5;color:#7b1fa2" onclick="selectProto('http')">🍔 HTTP</div><span class="jarrow">→</span></div>
+    <div class="jnode" style="background:#e0f2f1;color:#00695c">🏢 Site</div>
+  </div>
+</div>
+
+<div class="reset-area">
+  <button class="reset-btn" onclick="confirmReset()">🔄 Reiniciar missões</button>
+</div>
+
+<!-- CARDS -->
+<div class="cards-section">
+  <p class="section-hint">Clique num card para ver a explicação e iniciar a missão</p>
+  <div class="cards-grid">
+    <div class="proto-card" id="card-wifi" onclick="selectProto('wifi')"><div class="card-icon">📡</div><div class="card-name">Wi-Fi</div><div class="card-tagline">O mensageiro do ar</div><div class="card-badge">🏅</div><div class="card-status status-pending" id="cs-wifi">⏳ Pendente</div></div>
+    <div class="proto-card" id="card-dhcp" onclick="selectProto('dhcp')"><div class="card-icon">🚪</div><div class="card-name">DHCP</div><div class="card-tagline">O porteiro da rede</div><div class="card-badge">🏅</div><div class="card-status status-pending" id="cs-dhcp">⏳ Pendente</div></div>
+    <div class="proto-card" id="card-dns" onclick="selectProto('dns')"><div class="card-icon">📒</div><div class="card-name">DNS</div><div class="card-tagline">A agenda da internet</div><div class="card-badge">🏅</div><div class="card-status status-pending" id="cs-dns">⏳ Pendente</div></div>
+    <div class="proto-card" id="card-tcp" onclick="selectProto('tcp')"><div class="card-icon">📦</div><div class="card-name">TCP/IP</div><div class="card-tagline">O entregador de pacotes</div><div class="card-badge">🏅</div><div class="card-status status-pending" id="cs-tcp">⏳ Pendente</div></div>
+    <div class="proto-card" id="card-http" onclick="selectProto('http')"><div class="card-icon">🍔</div><div class="card-name">HTTP/HTTPS</div><div class="card-tagline">O garçom digital</div><div class="card-badge">🏅</div><div class="card-status status-pending" id="cs-http">⏳ Pendente</div></div>
+    <div class="proto-card" id="card-ftp" onclick="selectProto('ftp')"><div class="card-icon">🚚</div><div class="card-name">FTP</div><div class="card-tagline">O caminhão de mudanças</div><div class="card-badge">🏅</div><div class="card-status status-pending" id="cs-ftp">⏳ Pendente</div></div>
+    <div class="proto-card" id="card-smtp" onclick="selectProto('smtp')"><div class="card-icon">📬</div><div class="card-name">SMTP</div><div class="card-tagline">O carteiro digital</div><div class="card-badge">🏅</div><div class="card-status status-pending" id="cs-smtp">⏳ Pendente</div></div>
+    <div class="proto-card" id="card-ssh" onclick="selectProto('ssh')"><div class="card-icon">🎮</div><div class="card-name">SSH</div><div class="card-tagline">O controle remoto</div><div class="card-badge">🏅</div><div class="card-status status-pending" id="cs-ssh">⏳ Pendente</div></div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detailPanel">
+  <div class="panel-inner">
+    <div class="panel-header">
+      <span class="ph-icon" id="dIcon"></span>
+      <div><div class="ph-name" id="dName"></div><div class="ph-sub" id="dSub"></div></div>
+      <button class="close-btn" onclick="closePanel()">✕</button>
+    </div>
+    <div class="analogy-block">
+      <div class="analogy-label">🎭 Analogia do mundo real</div>
+      <div class="block-text" id="dAnalogy"></div>
+    </div>
+    <div class="section-block">
+      <div class="block-label">📖 Como funciona</div>
+      <div class="block-text" id="dExplain"></div>
+    </div>
+    <div class="flow-wrap" id="dFlow"></div>
+    <div id="missionBox"></div>
+  </div>
+</div>
+
+<!-- FINAL -->
+<div class="final-screen" id="finalScreen">
+  <div class="final-box">
+    <div class="final-trophy">🏆</div>
+    <div class="final-title">🎉 <span>Parabéns, <span id="finalNome"></span>!</span></div>
+    <p class="final-subtitle">Você concluiu todas as 8 missões da Cidade da Internet.<br><strong>Agora você é um Mestre dos Protocolos de Rede! 🌐</strong></p>
+    <div class="final-medals-row">📡 🚪 📒 📦 🍔 🚚 📬 🎮</div>
+    <button class="cert-btn" onclick="showCertificate()">📜 Gerar Certificado</button>
+  </div>
+</div>
+
+<!-- CERTIFICATE -->
+<div class="certificate" id="certificateBox">
+  <div class="cert-inner">
+    <div class="cert-logo">🌎</div>
+    <div class="cert-heading">Certificado de Conclusão</div>
+    <div class="cert-line"></div>
+    <div class="cert-student" id="certNome"></div>
+    <div class="cert-turma" id="certTurma"></div>
+    <div class="cert-body">
+      Concluiu com sucesso todas as <strong>8 missões</strong> da <strong>Cidade da Internet</strong><br>
+      e compreendeu o papel dos principais protocolos de rede:<br>
+      Wi-Fi, DHCP, DNS, TCP/IP, HTTP, FTP, SMTP e SSH.
+    </div>
+    <div class="cert-medals-row">📡 🚪 📒 📦 🍔 🚚 📬 🎮</div>
+    <div class="cert-assinatura">
+      <div class="cert-name">Professor Camilo</div>
+      <div class="cert-role">Professor de Informática — EMTI+EPT</div>
+    </div>
+    <div class="cert-footer" id="certDate"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// CONFIGURAÇÃO — cole aqui a URL do seu Apps Script
+// ════════════════════════════════════════════
+const APPS_SCRIPT_URL = 'COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT';
+// ════════════════════════════════════════════
+
+const STORAGE_KEY = 'cidadeInternet_v2';
+const ORDER = ['wifi','dhcp','dns','tcp','http','ftp','smtp','ssh'];
+const TOTAL = 8;
+
+let state = loadState();
+let dragSrc = null;
+let dropZoneItems = [];
+
+function loadState(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch(e){ return {}; }
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+// ── ONBOARDING ──────────────────────────────
+function startGame(){
+  const nome = document.getElementById('inputNome').value.trim();
+  const turma = document.getElementById('inputTurma').value.trim();
+  if(!nome || !turma){
+    document.getElementById('onboardErr').style.display='block';
+    return;
+  }
+  state.nome = nome;
+  state.turma = turma;
+  if(!state.progress) state.progress = {};
+  if(!state.timestamps) state.timestamps = {};
+  saveState();
+  document.getElementById('onboardOverlay').style.display='none';
+  applyPlayerTag();
+  updateUI();
+}
+
+function applyPlayerTag(){
+  if(!state.nome) return;
+  document.getElementById('tagNome').textContent = state.nome;
+  document.getElementById('tagTurma').textContent = state.turma;
+  document.getElementById('playerTag').style.display='inline-flex';
+}
+
+// ── PROGRESS UI ─────────────────────────────
+function updateUI(){
+  const done = ORDER.filter(k => state.progress && state.progress[k]);
+  const count = done.length;
+  document.getElementById('progressCount').textContent = count+'/'+TOTAL;
+  document.getElementById('progressBar').style.width = (count/TOTAL*100)+'%';
+  ORDER.forEach(k=>{
+    const pm = document.getElementById('pm-'+k);
+    if(pm) pm.classList.toggle('earned', !!(state.progress&&state.progress[k]));
+    const card = document.getElementById('card-'+k);
+    const cs = document.getElementById('cs-'+k);
+    if(state.progress&&state.progress[k]){
+      card.classList.add('done');
+      cs.textContent='✅ Concluída'; cs.className='card-status status-done';
+    } else {
+      card.classList.remove('done');
+      cs.textContent='⏳ Pendente'; cs.className='card-status status-pending';
+    }
+  });
+  if(count===TOTAL){
+    document.getElementById('finalNome').textContent = state.nome||'';
+    document.getElementById('finalScreen').classList.add('visible');
+  }
+}
+
+// ── PROTO DATA ───────────────────────────────
+const protos = {
+  wifi:{icon:'📡',name:'Wi-Fi',sub:'Camada de transmissão sem fio',
+    analogy:'Imagine que você quer enviar uma carta, mas em vez de colocá-la no correio, você simplesmente grita e a carta "voa" pelo ar até o destinatário. É exatamente isso que o Wi-Fi faz — envia dados em forma de ondas de rádio invisíveis.',
+    explain:'O Wi-Fi usa ondas de rádio para transmitir dados entre o seu celular/notebook e o roteador. A velocidade depende da distância, paredes e interferências. Quanto mais longe, mais fraco o sinal.',
+    flow:['📱 Celular','→','📡 Ondas de rádio','→','🔲 Roteador','→','🌐 Internet'],
+    mission:{title:'Missão 1 — O Mensageiro do Ar',story:'O Wi-Fi é responsável por levar os dados do seu aparelho até o roteador, como ondas de rádio invisíveis. Mas será que sua conexão é rápida ou lenta? Vamos descobrir!',challenge:'Abra o Speedtest, clique em "Go" e aguarde o resultado. Digite abaixo a velocidade de Download que apareceu (só o número).',toolUrl:'https://www.speedtest.net',toolLabel:'🚀 Abrir Speedtest',type:'input',placeholder:'Ex: 45',validate:v=>{const n=parseFloat(v.replace(',','.'));return !isNaN(n)&&n>0;},medal:'🏅 Medalha Wi-Fi desbloqueada!',hint:'Dica: o número aparece ao lado de "Download" em Mbps.'}
+  },
+  dhcp:{icon:'🚪',name:'DHCP',sub:'Dynamic Host Configuration Protocol',
+    analogy:'Imagine um edifício com porteiro. Quando você chega, ele te dá um número de apartamento. O DHCP faz isso: dá um endereço IP a cada aparelho que entra na rede.',
+    explain:'Cada aparelho na internet precisa de um endereço único chamado IP. O DHCP distribui esses endereços automaticamente — sem ele você teria que configurar tudo manualmente.',
+    flow:['💻 Aparelho entra','→','🚪 "Posso entrar?"','→','✅ "Seu IP: 192.168.0.10"'],
+    mission:{title:'Missão 2 — O Porteiro da Rede',story:'Todo aparelho conectado recebe um número único chamado endereço IP — como o número de apartamento na internet.',challenge:'Acesse o site abaixo e copie o endereço IP que aparece na tela.',toolUrl:'https://whatismyipaddress.com',toolLabel:'🔍 Ver meu endereço IP',type:'input',placeholder:'Ex: 187.45.23.10',validate:v=>v.includes('.'),medal:'🏅 Medalha DHCP desbloqueada!',hint:'Dica: o endereço IP tem grupos de números separados por pontos.'}
+  },
+  dns:{icon:'📒',name:'DNS',sub:'Domain Name System — a agenda da internet',
+    analogy:'Você sabe o nome do seu amigo, mas não sabe o número de cor. Então abre a agenda. O DNS faz o mesmo: você digita "google.com" e ele descobre o endereço numérico real.',
+    explain:'Computadores se comunicam por números (IPs), mas humanos preferem palavras. O DNS é o tradutor entre esses dois mundos.',
+    flow:['Você digita google.com','→','📒 DNS consulta','→','142.250.79.46','→','🏢 Google'],
+    mission:{title:'Missão 3 — A Agenda da Internet',story:'A internet tem um problema: computadores só entendem números, não nomes. O DNS resolve isso traduzindo "google.com" em números que o computador entende.',challenge:'Acesse o DNS Checker, pesquise "google.com" e observe os endereços IP. Agora responda:',toolUrl:'https://dnschecker.org',toolLabel:'🔍 Abrir DNS Checker',type:'multiple',question:'O DNS transforma:',options:['A) Nome do site em endereço IP','B) Foto em vídeo','C) Senha em Wi-Fi'],correct:0,medal:'🏅 Medalha DNS desbloqueada!'}
+  },
+  tcp:{icon:'📦',name:'TCP/IP',sub:'Transmission Control Protocol / Internet Protocol',
+    analogy:'Você quer enviar uma geladeira pelos Correios, mas ela não cabe numa caixa. Desmonta em peças, numera cada caixa e envia separado. Quem recebe monta tudo na ordem. Isso é o TCP.',
+    explain:'O TCP divide dados em pacotes, numera cada um e garante que todos chegaram. O IP cuida do endereço de entrega de cada pacote.',
+    flow:['📄 Dados','→','📦📦📦 Pacotes','→','🚚 TCP/IP','→','📄 Remontado'],
+    mission:{title:'Missão 4 — O Entregador de Pacotes',story:'Quando você envia algo pela internet, ela é dividida em pedacinhos chamados "pacotes", como um quebra-cabeça. O TCP/IP garante que todos cheguem e sejam montados na ordem certa.',challenge:'Os pacotes chegaram embaralhados. Clique neles na ordem certa para montar a mensagem:',toolUrl:null,type:'packets',packets:['OLA','IN','TER','NET'],answer:'OLA INTERNET',altAnswers:['OLÁ INTERNET','OLAINTERNET'],medal:'🏅 Medalha TCP/IP desbloqueada!'}
+  },
+  http:{icon:'🍔',name:'HTTP/HTTPS',sub:'HyperText Transfer Protocol',
+    analogy:'Você entra num restaurante e pede um hambúrguer. O garçom leva o pedido à cozinha e traz a resposta. O HTTP funciona assim: seu navegador pede, o servidor responde.',
+    explain:'HTTP é a linguagem do navegador para pedir páginas. Cada clique faz um pedido GET. O servidor responde com um código: 200=ok, 404=não encontrado, 500=erro. HTTPS é a versão segura.',
+    flow:['Você clica num link','→','🍔 GET /pagina','→','🏢 Servidor','→','200 OK'],
+    mission:{title:'Missão 5 — O Garçom Digital',story:'Toda vez que você abre um site, seu navegador faz um "pedido" ao servidor. O servidor responde com um código secreto que diz se tudo correu bem.',challenge:'Acesse o HTTP Status Checker e consulte "google.com". Observe o código de resposta. Agora responda:',toolUrl:'https://httpstatus.io',toolLabel:'🔍 Verificar status HTTP',type:'multiple',question:'O código HTTP 200 significa:',options:['A) Erro no servidor','B) Tudo certo, página encontrada!','C) Página não existe'],correct:1,medal:'🏅 Medalha HTTP desbloqueada!'}
+  },
+  ftp:{icon:'🚚',name:'FTP',sub:'File Transfer Protocol — o caminhão de mudanças',
+    analogy:'Você está de mudança e chama um caminhão para levar os móveis. O FTP faz isso com arquivos: move documentos e sites inteiros de um computador para outro.',
+    explain:'FTP é o protocolo para enviar e receber arquivos entre computadores. Quando um desenvolvedor termina um site, usa FTP para enviá-lo ao servidor.',
+    flow:['📷📄🎵 Arquivos','→','🚚 FTP','→','🏢 Servidor remoto'],
+    mission:{title:'Missão 6 — O Caminhão de Mudanças',story:'Você criou um site no seu computador. Para que outros vejam, você precisa enviar os arquivos para um servidor — como mandar uma mudança de caminhão.',challenge:'Acesse o Jumpshare e explore como funciona o envio de arquivos. Depois responda:',toolUrl:'https://jumpshare.com',toolLabel:'📤 Abrir Jumpshare',type:'multiple',question:'O FTP serve para:',options:['A) Transferir arquivos entre computadores','B) Enviar cartas pelo correio','C) Descobrir senhas Wi-Fi'],correct:0,medal:'🏅 Medalha FTP desbloqueada!'}
+  },
+  smtp:{icon:'📬',name:'SMTP',sub:'Simple Mail Transfer Protocol — o carteiro digital',
+    analogy:'Você escreve uma carta, coloca no correio e o carteiro sabe onde entregar. O SMTP é o carteiro dos e-mails.',
+    explain:'Quando você aperta "Enviar" num e-mail, o SMTP entra em ação. Ele entrega sua mensagem ao servidor do destinatário. IMAP/POP3 cuidam do recebimento.',
+    flow:['📧 Você envia','→','📬 SMTP','→','🏢 Servidor destino','→','👩 Destinatário'],
+    mission:{title:'Missão 7 — O Carteiro Digital',story:'Você já parou para pensar como um e-mail sai do seu celular e chega ao outro em segundos? O SMTP é o carteiro digital que sabe exatamente para onde entregar cada mensagem.',challenge:'Abra o Gmail, envie uma mensagem de teste para um colega. Depois responda:',toolUrl:'https://gmail.com',toolLabel:'📧 Abrir Gmail',type:'multiple',question:'O SMTP é responsável por:',options:['A) Enviar e-mails para o destinatário','B) Ligar o Wi-Fi automaticamente','C) Abrir sites no navegador'],correct:0,medal:'🏅 Medalha SMTP desbloqueada!'}
+  },
+  ssh:{icon:'🎮',name:'SSH',sub:'Secure Shell — controle remoto seguro',
+    analogy:'Imagine controlar o videogame de um amigo à distância, como se suas mãos estivessem lá. O SSH permite controlar outro computador digitando comandos, como se você estivesse na frente dele.',
+    explain:'SSH permite acessar e controlar um servidor remoto com segurança. Toda comunicação é criptografada. Administradores de sistemas usam SSH todo dia.',
+    flow:['💻 Seu computador','⇄ SSH criptografado ⇄','🖥️ Servidor remoto'],
+    mission:{title:'Missão 8 — O Controle Remoto',story:'Imagine controlar um computador que está em outro país, sem sair da cadeira. O SSH é um controle remoto super seguro para computadores!',challenge:'Acesse o terminal Linux online e experimente digitar: "pwd" e "ls". Depois responda:',toolUrl:'https://www.webminal.org',toolLabel:'💻 Abrir Terminal Online',type:'multiple',question:'O SSH serve para:',options:['A) Controlar outro computador à distância com segurança','B) Baixar músicas mais rápido','C) Melhorar o sinal do Wi-Fi'],correct:0,medal:'🏅 Medalha SSH desbloqueada!'}
+  }
+};
+
+// ── SELECT PROTO ────────────────────────────
+function selectProto(key){
+  document.querySelectorAll('.proto-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('card-'+key).classList.add('selected');
+  const p = protos[key];
+  document.getElementById('dIcon').textContent=p.icon;
+  document.getElementById('dName').textContent=p.name;
+  document.getElementById('dSub').textContent=p.sub;
+  document.getElementById('dAnalogy').textContent=p.analogy;
+  document.getElementById('dExplain').textContent=p.explain;
+  const flow=document.getElementById('dFlow');
+  flow.innerHTML='';
+  p.flow.forEach(s=>{
+    const el=document.createElement('span');
+    if(s==='→'||s.startsWith('⇄')){el.className='flow-arr';el.textContent=s;}
+    else{el.className='flow-step';el.textContent=s;}
+    flow.appendChild(el);
+  });
+  buildMission(key, p.mission);
+  const panel=document.getElementById('detailPanel');
+  panel.classList.add('visible');
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ── BUILD MISSION ───────────────────────────
+function buildMission(key, m){
+  const box=document.getElementById('missionBox');
+  const done=!!(state.progress&&state.progress[key]);
+  if(done){
+    box.innerHTML=`<div class="mission-box done-box"><div class="mission-title">✅ ${m.title}</div><div class="mission-done-state"><div class="medal">🏅</div><p>Missão concluída! Medalha de ${protos[key].name} conquistada.</p></div></div>`;
+    return;
+  }
+  let html=`<div class="mission-box" id="mbox-${key}"><div class="mission-title">🎯 ${m.title}</div><div class="mission-story">${m.story}</div><p class="mission-challenge">📋 Desafio: ${m.challenge}</p>`;
+  if(m.toolUrl) html+=`<a class="tool-btn" href="${m.toolUrl}" target="_blank">${m.toolLabel} ↗</a>`;
+  if(m.type==='input'){
+    html+=`<input class="mission-input" id="mi-${key}" type="text" placeholder="${m.placeholder||''}" />`;
+    if(m.hint) html+=`<p style="font-size:12px;color:var(--muted);margin-bottom:10px;">💡 ${m.hint}</p>`;
+    html+=`<button class="submit-btn" onclick="submitInput('${key}')">✅ Concluir Missão</button>`;
+  } else if(m.type==='multiple'){
+    html+=`<p style="font-weight:600;font-size:14px;margin-bottom:10px;">❓ ${m.question}</p><div class="alt-list" id="altlist-${key}">`;
+    m.options.forEach((o,i)=>{ html+=`<button class="alt-btn" onclick="submitMultiple('${key}',${i})">${o}</button>`; });
+    html+=`</div>`;
+  } else if(m.type==='packets'){
+    html+=buildPacketsHTML(key,m);
+  }
+  html+=`<div class="feedback" id="fb-${key}"></div></div>`;
+  box.innerHTML=html;
+  if(m.type==='packets') initDragDrop(key,m);
+}
+
+// ── PACKETS ──────────────────────────────────
+function buildPacketsHTML(key,m){
+  const shuffled=[...m.packets].sort(()=>Math.random()-.5);
+  let h=`<p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:8px;">📦 Pacotes recebidos (embaralhados):</p><div class="packets-area" id="src-${key}">`;
+  shuffled.forEach((p,i)=>{ h+=`<div class="packet" id="pkt-${key}-${i}" draggable="true" data-val="${p}">${p}</div>`; });
+  h+=`</div><p style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;">🔧 Clique nos pacotes para montar a mensagem:</p><div class="drop-zone" id="dz-${key}"><span class="dz-hint" id="dzhint-${key}">Clique nos pacotes acima para adicioná-los aqui</span></div><div style="margin-bottom:10px"><button onclick="clearDropZone('${key}')" style="background:none;border:1.5px solid #dadce0;border-radius:8px;padding:6px 14px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit">🔄 Limpar</button></div><button class="submit-btn" onclick="submitPackets('${key}')">✅ Verificar Montagem</button>`;
+  return h;
+}
+function initDragDrop(key,m){
+  dropZoneItems=[];
+  const src=document.getElementById('src-'+key);
+  const dz=document.getElementById('dz-'+key);
+  if(!src||!dz) return;
+  src.querySelectorAll('.packet').forEach(pkt=>{
+    pkt.onclick=()=>{
+      dropZoneItems.push(pkt.dataset.val);
+      pkt.style.opacity='.35'; pkt.style.pointerEvents='none';
+      renderDropZone(key);
+    };
+    pkt.addEventListener('dragstart',e=>{ dragSrc=pkt; setTimeout(()=>pkt.classList.add('dragging'),0); });
+    pkt.addEventListener('dragend',()=>pkt.classList.remove('dragging'));
+  });
+  dz.addEventListener('dragover',e=>{ e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+  dz.addEventListener('drop',e=>{ e.preventDefault(); dz.classList.remove('drag-over'); if(dragSrc){ dropZoneItems.push(dragSrc.dataset.val); dragSrc.style.opacity='.35'; dragSrc.style.pointerEvents='none'; renderDropZone(key); dragSrc=null; } });
+}
+function renderDropZone(key){
+  const dz=document.getElementById('dz-'+key);
+  const hint=document.getElementById('dzhint-'+key);
+  if(!dz) return;
+  dz.querySelectorAll('.packet').forEach(p=>p.remove());
+  if(hint) hint.style.display=dropZoneItems.length?'none':'inline';
+  dropZoneItems.forEach((val,i)=>{
+    const el=document.createElement('div');
+    el.className='packet'; el.textContent=val; el.style.cursor='pointer'; el.title='Clique para remover';
+    el.onclick=()=>{ dropZoneItems.splice(i,1); const src=document.querySelectorAll(`[data-val="${val}"]`); src.forEach(p=>{ if(p.style.opacity==='.35'){ p.style.opacity='1'; p.style.pointerEvents='auto'; return; } }); renderDropZone(key); initDragDrop(key,protos[key].mission); };
+    dz.appendChild(el);
+  });
+}
+function clearDropZone(key){
+  dropZoneItems=[];
+  const src=document.getElementById('src-'+key);
+  if(src) src.querySelectorAll('.packet').forEach(p=>{ p.style.opacity='1'; p.style.pointerEvents='auto'; });
+  renderDropZone(key);
+}
+
+// ── SUBMIT ───────────────────────────────────
+function submitInput(key){
+  const val=document.getElementById('mi-'+key).value.trim();
+  const m=protos[key].mission;
+  if(m.validate(val)) completeMission(key);
+  else showFeedback(key,false,'❌ Resposta inválida. Verifique e tente novamente!');
+}
+function submitMultiple(key,idx){
+  const m=protos[key].mission;
+  const btns=document.querySelectorAll(`#altlist-${key} .alt-btn`);
+  btns.forEach(b=>b.disabled=true);
+  if(idx===m.correct){ btns[idx].classList.add('correct'); completeMission(key); }
+  else {
+    btns[idx].classList.add('wrong'); btns[m.correct].classList.add('correct');
+    showFeedback(key,false,'❌ Não foi dessa vez! A resposta correta está em verde. Tente de novo!');
+    setTimeout(()=>{ btns.forEach(b=>{ b.disabled=false; b.className='alt-btn'; }); hideFeedback(key); },2500);
+  }
+}
+function submitPackets(key){
+  const m=protos[key].mission;
+  const assembled=dropZoneItems.join(' ').trim().toUpperCase();
+  const joined=dropZoneItems.join('').trim().toUpperCase();
+  const correct=m.answer.toUpperCase();
+  const alts=(m.altAnswers||[]).map(a=>a.toUpperCase());
+  if(assembled===correct||alts.includes(assembled)||joined===correct.replace(/ /g,'')||alts.map(a=>a.replace(/ /g,'')).includes(joined)) completeMission(key);
+  else showFeedback(key,false,'❌ Quase lá! Verifique a ordem. A mensagem começa com OLA... Clique em Limpar e tente de novo!');
+}
+
+// ── COMPLETE MISSION ─────────────────────────
+function completeMission(key){
+  if(!state.progress) state.progress={};
+  if(!state.timestamps) state.timestamps={};
+  state.progress[key]=true;
+  state.timestamps[key]=new Date().toISOString();
+  saveState();
+  updateUI();
+  const m=protos[key].mission;
+  const fb=document.getElementById('fb-'+key);
+  if(fb){ fb.className='feedback success'; fb.innerHTML=`🎉 ${m.medal}<br><span class="medal-reveal">🏅</span><br><small>Incrível! Missão concluída!</small>`; }
+  // Envia para o Sheets a cada missão concluída
+  sendToSheets(false);
+  setTimeout(()=>buildMission(key,m),2000);
+}
+
+// ── SEND TO GOOGLE SHEETS ────────────────────
+function sendToSheets(isFinal){
+  if(!APPS_SCRIPT_URL||APPS_SCRIPT_URL==='COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT') return;
+  const payload={
+    nome: state.nome||'',
+    turma: state.turma||'',
+    progresso: ORDER.map(k=>({
+      protocolo: k,
+      concluido: !!(state.progress&&state.progress[k]),
+      horario: (state.timestamps&&state.timestamps[k])||''
+    })),
+    total: ORDER.filter(k=>state.progress&&state.progress[k]).length,
+    finalizado: isFinal,
+    dataEnvio: new Date().toISOString()
+  };
+  if(isFinal){
+    document.getElementById('sendingOverlay').classList.add('visible');
+    document.getElementById('sendingMsg').textContent='Enviando resultado final ao professor...';
+  }
+  fetch(APPS_SCRIPT_URL,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  }).then(()=>{
+    if(isFinal){
+      document.getElementById('sendingOverlay').classList.remove('visible');
+      document.getElementById('sendingMsg').textContent='Enviando resultado ao professor...';
+    }
+  }).catch(()=>{
+    document.getElementById('sendingOverlay').classList.remove('visible');
+  });
+}
+
+function showCertificate(){
+  sendToSheets(true);
+  const d=new Date();
+  document.getElementById('certNome').textContent=state.nome||'';
+  document.getElementById('certTurma').textContent='Turma: '+(state.turma||'');
+  document.getElementById('certDate').textContent='Emitido em: '+d.toLocaleDateString('pt-BR',{year:'numeric',month:'long',day:'numeric'});
+  const cert=document.getElementById('certificateBox');
+  cert.classList.add('visible');
+  cert.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function showFeedback(key,ok,msg){
+  const fb=document.getElementById('fb-'+key);
+  if(!fb) return;
+  fb.className='feedback '+(ok?'success':'error');
+  fb.textContent=msg;
+}
+function hideFeedback(key){
+  const fb=document.getElementById('fb-'+key);
+  if(fb){fb.className='feedback';fb.textContent='';}
+}
+function closePanel(){
+  document.getElementById('detailPanel').classList.remove('visible');
+  document.querySelectorAll('.proto-card').forEach(c=>c.classList.remove('selected'));
+}
+function confirmReset(){
+  if(confirm('Tem certeza que quer reiniciar? Todo o progresso será perdido.')){
+    const nome=state.nome; const turma=state.turma;
+    state={nome,turma,progress:{},timestamps:{}};
+    saveState();
+    document.getElementById('finalScreen').classList.remove('visible');
+    document.getElementById('certificateBox').classList.remove('visible');
+    updateUI(); closePanel();
+  }
+}
+
+// ── INIT ─────────────────────────────────────
+if(state.nome&&state.turma){
+  document.getElementById('onboardOverlay').style.display='none';
+  applyPlayerTag();
+  updateUI();
+} else {
+  // garante overlay visível
+  document.getElementById('onboardOverlay').style.display='flex';
+}
+</script>
+</body>
+</html>
