@@ -322,7 +322,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 // CONFIGURAÇÃO
 // ════════════════════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBmueJpYeH7nJU-C10mOj97bwWTgPXWzYWokvFkXVWB5nZNHEyXBhFO8mkU2ZoBK9XmQ/exec';
-const STORAGE_KEY = 'cidadeInternet_v2';
+const STORAGE_KEY = 'cidadeInternet_v3';
 const ORDER = ['wifi','dhcp','dns','tcp','http','ftp','smtp','ssh'];
 const TOTAL = 8;
 
@@ -347,16 +347,21 @@ let dropZoneItems = [];
 
 // ── ONBOARDING ────────────────────────────────────────────────────
 function startGame(){
+  var btn = document.getElementById('onboardBtn');
+  var err = document.getElementById('onboardErr');
   try {
-    const nome  = document.getElementById('inputNome').value.trim();
-    const turma = document.getElementById('inputTurma').value.trim();
-    const err   = document.getElementById('onboardErr');
+    btn.disabled = true;
+    btn.textContent = '⏳ Iniciando...';
+    var nome  = document.getElementById('inputNome').value.trim();
+    var turma = document.getElementById('inputTurma').value.trim();
+    err.style.display = 'none';
     if(!nome || !turma){
       err.style.display = 'block';
       err.textContent   = '⚠️ Preencha nome e turma antes de continuar.';
+      btn.disabled = false;
+      btn.textContent = '🚀 Começar o jogo!';
       return;
     }
-    err.style.display = 'none';
     state.nome    = nome;
     state.turma   = turma;
     if(!state.progress)   state.progress   = {};
@@ -367,8 +372,11 @@ function startGame(){
     applyPlayerTag();
     updateUI();
   } catch(e) {
+    err.style.display = 'block';
+    err.textContent = '❌ Erro: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = '🚀 Começar o jogo!';
     console.error('startGame erro:', e);
-    alert('Erro ao iniciar: ' + e.message);
   }
 }
 
@@ -674,15 +682,19 @@ function confirmReset(){
 // ── INIT ──────────────────────────────────────────────────────────
 (function(){
   try {
-    if(state.nome && state.turma){
+    // Limpa chaves antigas de versões anteriores
+    localStorage.removeItem('cidadeInternet_v1');
+    localStorage.removeItem('cidadeInternet_v2');
+    if(state && state.nome && state.turma){
       document.getElementById('onboardOverlay').style.display = 'none';
       applyPlayerTag();
       updateUI();
     } else {
+      state = {};
       document.getElementById('onboardOverlay').style.display = 'flex';
     }
   } catch(e) {
-    localStorage.removeItem(STORAGE_KEY);
+    try { localStorage.clear(); } catch(e2){}
     state = {};
     document.getElementById('onboardOverlay').style.display = 'flex';
   }
