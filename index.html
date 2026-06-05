@@ -191,9 +191,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
     <div class="onboard-title">A Cidade da Internet</div>
     <p class="onboard-sub">Antes de começar, diga quem você é!<br>Seu progresso será salvo e enviado ao professor.</p>
     <p class="onboard-err" id="onboardErr">⚠️ Preencha nome e turma antes de continuar.</p>
-    <input class="onboard-field" id="inputNome" type="text" placeholder="Seu nome completo" maxlength="80" autocomplete="off" />
-    <input class="onboard-field" id="inputTurma" type="text" placeholder="Sua turma (ex: 201, Tarde-202...)" maxlength="30" autocomplete="off" />
-    <button class="onboard-btn" id="onboardBtn" onclick="startGame()">🚀 Começar o jogo!</button>
+    <input class="onboard-field" id="inputNome" type="text" placeholder="Seu nome completo" maxlength="80" autocomplete="off" onkeydown="if(event.key==='Enter')document.getElementById('inputTurma').focus()" />
+    <input class="onboard-field" id="inputTurma" type="text" placeholder="Sua turma (ex: 201, Tarde-202...)" maxlength="30" autocomplete="off" onkeydown="if(event.key==='Enter')startGame()" />
+    <button class="onboard-btn" id="onboardBtn" type="button" onclick="startGame()">🚀 Começar o jogo!</button>
   </div>
 </div>
 
@@ -321,7 +321,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 // ════════════════════════════════════════════
 // CONFIGURAÇÃO — cole aqui a URL do seu Apps Script
 // ════════════════════════════════════════════
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxN1V_66SquM4iM67-dxzU35Xw4zQpflnI56zjs0d05jfV9XXdqbjdbu2UTGqpm8hn_Fg/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBmueJpYeH7nJU-C10mOj97bwWTgPXWzYWokvFkXVWB5nZNHEyXBhFO8mkU2ZoBK9XmQ/exec';
 // ════════════════════════════════════════════
 
 const STORAGE_KEY = 'cidadeInternet_v2';
@@ -347,20 +347,30 @@ function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); 
 
 // ── ONBOARDING ──────────────────────────────
 function startGame(){
-  const nome = document.getElementById('inputNome').value.trim();
-  const turma = document.getElementById('inputTurma').value.trim();
-  if(!nome || !turma){
-    document.getElementById('onboardErr').style.display='block';
-    return;
+  try {
+    const nome = document.getElementById('inputNome').value.trim();
+    const turma = document.getElementById('inputTurma').value.trim();
+    const err = document.getElementById('onboardErr');
+    if(!nome || !turma){
+      err.style.display='block';
+      err.textContent='⚠️ Preencha nome e turma antes de continuar.';
+      return;
+    }
+    err.style.display='none';
+    state.nome = nome;
+    state.turma = turma;
+    if(!state.progress) state.progress = {};
+    if(!state.timestamps) state.timestamps = {};
+    if(!state.sessionId){
+      state.sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2,6);
+    }
+    saveState();
+    document.getElementById('onboardOverlay').style.display='none';
+    applyPlayerTag();
+    updateUI();
+  } catch(e) {
+    alert('Erro ao iniciar: ' + e.message);
   }
-  state.nome = nome;
-  state.turma = turma;
-  if(!state.progress) state.progress = {};
-  if(!state.timestamps) state.timestamps = {};
-  saveState();
-  document.getElementById('onboardOverlay').style.display='none';
-  applyPlayerTag();
-  updateUI();
 }
 
 function applyPlayerTag(){
@@ -653,14 +663,22 @@ function confirmReset(){
 }
 
 // ── INIT ─────────────────────────────────────
-if(state.nome&&state.turma){
-  document.getElementById('onboardOverlay').style.display='none';
-  applyPlayerTag();
-  updateUI();
-} else {
-  // garante overlay visível
-  document.getElementById('onboardOverlay').style.display='flex';
-}
+(function(){
+  try {
+    if(state.nome && state.turma){
+      document.getElementById('onboardOverlay').style.display='none';
+      applyPlayerTag();
+      updateUI();
+    } else {
+      document.getElementById('onboardOverlay').style.display='flex';
+    }
+  } catch(e) {
+    // estado corrompido — reseta e mostra tela inicial
+    localStorage.removeItem(STORAGE_KEY);
+    state = {};
+    document.getElementById('onboardOverlay').style.display='flex';
+  }
+})();
 </script>
 </body>
 </html>
