@@ -336,6 +336,13 @@ function loadState(){
   try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
   catch(e){ return {}; }
 }
+function getSessionId(){
+  if(!state.sessionId){
+    state.sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2,6);
+    saveState();
+  }
+  return state.sessionId;
+}
 function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
 // ── ONBOARDING ──────────────────────────────
@@ -574,14 +581,7 @@ function completeMission(key){
   updateUI();
   const m=protos[key].mission;
   const fb=document.getElementById('fb-'+key);
-  if(fb){ fb.className='feedback success'; fb.innerHTML=`🎉 ${m.medal}<br><span class="medal-reveal">🏅</span><br><small>Incrível! Missão concluída!</small>`; }
-  // Envia para o Sheets a cada missão concluída
-  sendToSheets(false);
-  setTimeout(()=>buildMission(key,m),2000);
-}
-
-// ── SEND TO GOOGLE SHEETS ────────────────────
-function sendToSheets(isFinal){
+  if(fb){ fb.className='feedback success'; fb.innerHTML=`🎉 ${m.medal}<br><span class="medal-reveal">🏅</span><br><small>Incrível! Missão conclfunction sendToSheets(isFinal){
   if(!APPS_SCRIPT_URL) return;
   const prog = ORDER.map(k=>({
     protocolo: k,
@@ -589,6 +589,7 @@ function sendToSheets(isFinal){
     horario: (state.timestamps&&state.timestamps[k])||''
   }));
   const params = new URLSearchParams({
+    sessionId: getSessionId(),
     nome: state.nome||'',
     turma: state.turma||'',
     total: String(ORDER.filter(k=>state.progress&&state.progress[k]).length),
@@ -600,6 +601,13 @@ function sendToSheets(isFinal){
   if(isFinal){
     document.getElementById('sendingOverlay').classList.add('visible');
     document.getElementById('sendingMsg').textContent='Enviando resultado final ao professor...';
+  }
+  const img = new Image();
+  img.onload = img.onerror = function(){
+    if(isFinal) document.getElementById('sendingOverlay').classList.remove('visible');
+  };
+  img.src = url;
+}.';
   }
   const img = new Image();
   img.onload = img.onerror = function(){
